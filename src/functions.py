@@ -1,5 +1,6 @@
 from textnode import *
 from htmlnode import *
+import re
 
 #this function turn a text node to a html node (leafnode more specifically)
 def text_node_to_html_node(text_node):       
@@ -57,4 +58,122 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
                         # tek index => belirtilen text_type
                         new_nodes.append(TextNode(part, text_type))
     return new_nodes
+
+#this function extracts images from MD texts
+def extract_markdown_images(text):
+    matches = re.findall(r"!\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
+    return matches
+
+#this function extracts normal links from MD texts
+def extract_markdown_links(text):
+    matches = re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
+    return matches
+
+#this function creates new textnodes from old ones for image types
+def split_nodes_image(old_nodes):
+    new_nodes = []
+    for node in old_nodes:
+        # Text olmayan node'ları olduğu gibi ekle
+        if node.text_type != TextType.TEXT:
+            new_nodes.append(node)
+            continue
+
+        # Text boşsa, işlemeyeceğiz ama önce tüm listeye bakmamız lazım
+        if not node.text.strip():
+            continue  # ama hemen eklemiyoruz, aşağıda duruma göre karar verilecek
+
+        matches = extract_markdown_images(node.text)
+        if not matches:
+            new_nodes.append(node)
+            continue
+
+        pos = 0
+        text = node.text
+        for alt_text, url in matches:
+            pattern = f"![{alt_text}]({url})"
+            idx = text.find(pattern, pos)
+            if idx == -1:
+                continue
+
+            before = text[pos:idx]
+            if before.strip():
+                new_nodes.append(TextNode(before, TextType.TEXT))
+
+            new_nodes.append(TextNode(alt_text, TextType.IMAGE, url))
+            pos = idx + len(pattern)
+
+        after = text[pos:]
+        if after.strip():
+            new_nodes.append(TextNode(after, TextType.TEXT))
+
+    # Eğer hiçbir yeni node üretilmediyse ve orijinal liste sadece boş bir TEXT node'undan oluşuyorsa
+    if not new_nodes and len(old_nodes) == 1 and old_nodes[0].text_type == TextType.TEXT and not old_nodes[0].text.strip():
+        return old_nodes
+
+    return new_nodes
+
+#this function creates new text nodes from old ones for link types
+def split_nodes_link(old_nodes):
+    new_nodes = []
+    for node in old_nodes:
+        # Text olmayan node'ları olduğu gibi ekle
+        if node.text_type != TextType.TEXT:
+            new_nodes.append(node)
+            continue
+
+        # Text boşsa, işlemeyeceğiz ama önce tüm listeye bakmamız lazım
+        if not node.text.strip():
+            continue  # ama hemen eklemiyoruz, aşağıda duruma göre karar verilecek
+
+        matches = extract_markdown_links(node.text)
+        if not matches:
+            new_nodes.append(node)
+            continue
+
+        pos = 0
+        text = node.text
+        for link, url in matches:
+            pattern = f"[{link}]({url})"
+            idx = text.find(pattern, pos)
+            if idx == -1:
+                continue
+
+            before = text[pos:idx]
+            if before.strip():
+                new_nodes.append(TextNode(before, TextType.TEXT))
+
+            new_nodes.append(TextNode(link, TextType.LINK, url))
+            pos = idx + len(pattern)
+
+        after = text[pos:]
+        if after.strip():
+            new_nodes.append(TextNode(after, TextType.TEXT))
+
+    # Eğer hiçbir yeni node üretilmediyse ve orijinal liste sadece boş bir TEXT node'undan oluşuyorsa
+    if not new_nodes and len(old_nodes) == 1 and old_nodes[0].text_type == TextType.TEXT and not old_nodes[0].text.strip():
+        return old_nodes
+
+    return new_nodes
+
+def text_to_textnodes(text):
+   markdown_syntax = {
+        TextType.BOLD: "**",
+        TextType.ITALIC: "_",
+        TextType.CODE:  "`"
+    }
+
+   text_node = TextNode(text, TextType.TEXT)
+   text_nodes = split_nodes_image([text_node])
+   text_nodes = split_nodes_link(text_nodes)
+   
+   for k, v in markdown_syntax.items():
+       text_nodes = split_nodes_delimiter(text_nodes, v, k)
+   return text_nodes
+
+
+
+
+
+
+
 
