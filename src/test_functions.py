@@ -2,6 +2,7 @@ import unittest
 from htmlnode import *
 from textnode import *
 from functions import *
+from blocknode import *
 
 class TestSplitNodesDelimiter(unittest.TestCase):
     def test_basic_split(self):
@@ -371,20 +372,135 @@ class TestSplitters(unittest.TestCase):
     def test_empty_string(self):
         text = ""
         result = text_to_textnodes(text)
-        self.assertEqual(result, [TextNode("", TextType.TEXT)])
-
+        self.assertEqual(result, [TextNode("", TextType.TEXT)])    
+    
     def test_no_markdown(self):
         text = "Just plain text."
         result = text_to_textnodes(text)
         self.assertEqual(result, [TextNode("Just plain text.", TextType.TEXT)])
-
+    
     def test_unclosed_bold(self):
         text = "This is **bold"
         with self.assertRaises(Exception) as context:
             text_to_textnodes(text)
-        self.assertIn("Text does not have delimiter", str(context.exception))
+        self.assertIn("Text does not have delimiter", str(context.exception))    
+
+    def test_markdown_to_blocks(self):
+        md = """
+This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+    def test_markdown_to_blocks_with_empty_blocks(self):
+        md = """
+This is **bolded** paragraph
 
 
+
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+
+
+- This is a list
+- with items
+"""
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+    def test_markdown_to_list_with_whitespaces(self):
+        md = """
+    This is **bolded** paragraph
+    
+    
+
+    This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line        
+    
+    
+    
+    
+    
+            - This is a list
+- with items
+    """
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [
+                "This is **bolded** paragraph",
+                "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                "- This is a list\n- with items",
+            ],
+        )
+
+    def test_markdown_to_blocks222(self):
+        md = "  "
+        blocks = markdown_to_blocks(md)
+        self.assertEqual(
+            blocks,
+            [],
+        )
+
+    def test_block_to_block_type(self):
+        md = """
+    This is **bolded** paragraph
+    
+    
+
+    This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line        
+    
+    
+    
+    
+    
+            - This is a list
+- with items
+
+
+1. this is an ordered list
+2. list item number two
+3. list item number three
+
+
+> this is a quote block
+> quote block continues
+
+
+```
+here is a code block
+bunch of codes here
+```
+    """
+        blocks = markdown_to_blocks(md)
+        list_of_block_types = [block_to_block_type(block) for block in blocks]
+        self.assertEqual(
+            list_of_block_types,
+            [BlockType.PARAGRAPH, BlockType.PARAGRAPH, BlockType.ULIST, BlockType.OLIST, BlockType.QUOTE, BlockType.CODE ]
+        )
 
 
 
