@@ -3,6 +3,7 @@ from htmlnode import *
 from textnode import *
 from functions import *
 from blocknode import *
+from markdown_to_htmlnode import *
 
 class TestSplitNodesDelimiter(unittest.TestCase):
     def test_basic_split(self):
@@ -502,7 +503,78 @@ bunch of codes here
             [BlockType.PARAGRAPH, BlockType.PARAGRAPH, BlockType.ULIST, BlockType.OLIST, BlockType.QUOTE, BlockType.CODE ]
         )
 
+class TestMarkdownConversion(unittest.TestCase):
+    def test_heading_conversion(self):
+        block = "# Heading"
+        tag = determine_tag(block)
+        self.assertEqual(tag, "h1")
 
+    def test_unordered_list(self):
+        md = "- Item 1\n- Item 2"
+        html_node = markdown_to_html_node(md)
+        html = html_node.to_html()
+        self.assertIn("<ul>", html)
+        self.assertIn("<li>", html)
+        self.assertIn("Item 1", html)
+
+    def test_ordered_list(self):
+        md = "1. First\n2. Second"
+        html_node = markdown_to_html_node(md)
+        html = html_node.to_html()
+        self.assertIn("<ol>", html)
+        self.assertIn("<li>", html)
+        self.assertIn("First", html)
+
+    def test_code_block(self):
+        md = "```\nCode\n```"
+        html_node = markdown_to_html_node(md)
+        html = html_node.to_html()
+        self.assertIn("<pre><code>", html)  # or <pre><code> if that's how it's generated
+        self.assertIn("Code", html)
+
+
+class TestMarkdownToHtmlNode(unittest.TestCase):
+
+    def test_heading(self):
+        md = "# Title"
+        html_node = markdown_to_html_node(md)
+        self.assertEqual(html_node.to_html(), "<div><h1>Title</h1></div>")
+
+    def test_paragraph(self):
+        md = "This is a paragraph."
+        html_node = markdown_to_html_node(md)
+        self.assertEqual(html_node.to_html(), "<div><p>This is a paragraph.</p></div>")
+
+    def test_quote(self):
+        md = "> A quote\n> still in quote"
+        html_node = markdown_to_html_node(md)
+        self.assertEqual(html_node.to_html(), "<div><blockquote>A quote\nstill in quote</blockquote></div>")
+
+    def test_unordered_list(self):
+        md = "- Item one\n- Item two"
+        html_node = markdown_to_html_node(md)
+        self.assertEqual(html_node.to_html(), "<div><ul><li>Item one</li><li>Item two</li></ul></div>")
+
+    def test_ordered_list(self):
+        md = "1. First\n2. Second"
+        html_node = markdown_to_html_node(md)
+        self.assertEqual(html_node.to_html(), "<div><ol><li>First</li><li>Second</li></ol></div>")
+
+    def test_code_block(self):
+        md = "```\nprint(\"Hello\")\n```"
+        html_node = markdown_to_html_node(md)
+        self.assertEqual(
+            html_node.to_html(),
+            "<div><pre><code>print(\"Hello\")</code></pre></div>"
+        )
+
+    def test_mixed_content(self):
+        md = "# Header\n\nParagraph\n\n- Item 1\n- Item 2"
+        html_node = markdown_to_html_node(md)
+        self.assertEqual(
+            html_node.to_html(),
+            "<div><h1>Header</h1><p>Paragraph</p><ul><li>Item 1</li><li>Item 2</li></ul></div>"
+        )
 
 if __name__ == '__main__':
     unittest.main()

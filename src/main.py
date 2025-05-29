@@ -1,45 +1,30 @@
 from textnode import *
 from htmlnode import *
 from functions import *
+from markdown_to_htmlnode import *
 
 def main():
-    #dummy_textnode = TextNode("text", TextType.LINK, "https://www.boot.dev"  )
-    #print(repr(dummy_textnode))
+    md = """# Heading One
 
-    md = """
-    This is **bolded** paragraph
-    
-    
+This is a paragraph.
 
-    This is another paragraph with _italic_ text and `code` here
-This is the same paragraph on a new line        
-    
-    
-    
-    
-    
-            - This is a list
-- with items
+## Heading Two
 
+> This is a quote.
+> Still in the quote.
 
-1. this is an ordered list
-2. list item number two
-3. list item number three
+- Item one
+- Item two
+- Item three
 
+1. First
+2. Second
+3. Third
 
-> this is a quote block
-> quote block continues
-
-
-```
-here is a code block
-bunch of codes here
-```
 """
-    blocks = markdown_to_blocks(md)
-    list_of_block_types = [block_to_block_type(block) for block in blocks]
+    html_node = markdown_to_html_node(md)
+    print(html_node.to_html())
 
-    print(list_of_block_types)
 
 main()
 
