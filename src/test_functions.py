@@ -3,7 +3,7 @@ from htmlnode import *
 from textnode import *
 from functions import *
 from blocknode import *
-from markdown_to_htmlnode import *
+
 
 class TestSplitNodesDelimiter(unittest.TestCase):
     def test_basic_split(self):
@@ -575,6 +575,29 @@ class TestMarkdownToHtmlNode(unittest.TestCase):
             html_node.to_html(),
             "<div><h1>Header</h1><p>Paragraph</p><ul><li>Item 1</li><li>Item 2</li></ul></div>"
         )
+
+class TestExtractTitle(unittest.TestCase):
+
+    def test_valid_title(self):
+        md = "# Hello World\nSome content"
+        self.assertEqual(extract_title(md), "Hello World")
+
+    def test_title_with_extra_spaces(self):
+        md = "   #   Title with spaces   \nOther text"
+        self.assertEqual(extract_title(md), "Title with spaces")
+
+    def test_multiple_titles(self):
+        md = "# First Title\n## Subtitle\n# Second Title"
+        self.assertEqual(extract_title(md), "First Title")  # only the first # title
+
+    def test_no_title(self):
+        md = "Just some text\nNo markdown title here"
+        with self.assertRaises(IndexError):
+            extract_title(md)
+
+    def test_title_not_at_start_of_line(self):
+        md = "  # valid\n#not Valid Title"
+        self.assertEqual(extract_title(md), "valid")
 
 if __name__ == '__main__':
     unittest.main()

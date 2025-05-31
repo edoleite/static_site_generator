@@ -1,7 +1,10 @@
 from textnode import *
 from htmlnode import *
+from blocknode import *
 import re
-from blocknode import BlockType
+import os
+import shutil
+
 
 #this function turn a text node to a html node (leafnode more specifically)
 def text_node_to_html_node(text_node):       
@@ -202,11 +205,203 @@ def block_to_block_type(block):
         return BlockType.OLIST
     return BlockType.PARAGRAPH
     
+def markdown_to_html_node(md):
+    
+    md_blocks = markdown_to_blocks(md)    
+    block_nodes = []
 
+    for block in md_blocks:
+        
+        block_type = block_to_block_type(block)
+        tag = determine_tag(block)
+        block = remove_marker(block)
+        
+        if block_type != BlockType.CODE:
+            childrens = text_to_children(block, block_type)
+            block_node = ParentNode(tag, flatten_children(childrens))
+            block_nodes.append(block_node)
+        else:
 
+            innermost_node = TextNode(block, TextType.CODE)
+            code_node = text_node_to_html_node(innermost_node)           
+            pre_node = ParentNode("pre", [code_node])
+            block_nodes.append(pre_node)      
+    
+    res_node = ParentNode("div", block_nodes)
+    return res_node
 
+def determine_tag(block):
+    block_type = block_to_block_type(block)
+    tag_map = {
+        BlockType.PARAGRAPH: "p",
+        BlockType.QUOTE: "blockquote",
+        BlockType.CODE : "code",    
+        BlockType.ULIST : "ul",
+        BlockType.OLIST : "ol",
+        BlockType.HEADING: ["h1", "h2", "h3", "h4", "h5", "h6"]
+    }
+    
+    if block_type == BlockType.HEADING:
+        hashes = [char for char in block if char == "#"]
+        tag = tag_map[BlockType.HEADING][len(hashes)-1]
+    else:
+        tag = tag_map[block_type]
 
+    return tag
+   
+def remove_marker(block):
+    block_type = block_to_block_type(block)
+    
+    if block_type == BlockType.QUOTE:
+        lines = block.split("\n")
+        stripped_lines = []
+        for line in lines:
+            if line.startswith(">"):
+                first_strip = line.lstrip(">")
+                second_strip = first_strip.strip()
+                stripped_lines.append(second_strip)
+            else:
+                stripped_lines.append(line)
 
+        new_block = "\n".join(stripped_lines)
+        return new_block
+    
+    if block_type == BlockType.HEADING:
+        split_index = 0
+        for i in range(len(block)):
+           if block[i] == "#":
+               split_index = i + 1
+           else:
+               break
+                          
+        return block[split_index:].strip()    
+    
+    if block_type == BlockType.ULIST or block_type == BlockType.OLIST:
+        lines = block.split("\n")
+        stripped_lines = []
+        for line in lines:                        
+            stripped_line = re.sub(r'^(- |\d+\. )', '', line)
+            double_stripped_line = stripped_line.strip()
+            stripped_lines.append(double_stripped_line)
+        
+        new_block = "\n".join(stripped_lines)        
+        return new_block
+    
+    if block_type == BlockType.CODE:
+        lines = block.split("\n")
 
+        if lines[0] == "```":
+            del lines[0]
+        if lines[-1] == "```":
+            del lines[-1]
 
+        first_index = 0
+        last_index = 0
 
+        for i in range(len(lines)):
+            if lines[i].strip():
+                continue
+            else:
+                first_index = i
+                break
+            
+        for i in range(len(lines)-1, -1, -1):
+            if lines[i].strip():
+                last_index = i
+                break            
+            else:
+                continue
+                
+
+        return "\n".join(lines[first_index: last_index +1 ])
+
+    return block
+
+def text_to_children(block, block_type):
+
+    children_nodes = []   
+
+    if block_type in [BlockType.ULIST, BlockType.OLIST]:
+        lines = block.split("\n")        
+        for line in lines:               
+            lines_text_nodes = text_to_textnodes(line)
+            lines_html_nodes = [text_node_to_html_node(node) for node in lines_text_nodes]                
+            lines_parent_node = ParentNode("li", lines_html_nodes)
+            children_nodes.append(lines_parent_node) 
+        
+    else:
+        text_nodes = text_to_textnodes(block)
+        html_nodes = [text_node_to_html_node(node) for node in text_nodes]
+        children_nodes.extend(html_nodes)         
+
+    return children_nodes
+
+def flatten_children(children):
+    flat = []
+
+    for child in children:
+        if isinstance(child, list):
+            flat.extend(flatten_children(child))  # Recursive flattening
+        else:
+            if not hasattr(child, "to_html") or not callable(child.to_html):
+                raise TypeError(f"Child {child} is not a valid node (missing to_html())")
+            flat.append(child)
+    
+    return flat
+
+def copy_contents(source_dir, dest_dir):
+    if not os.path.exists(source_dir):
+        raise FileNotFoundError(f"Source directory '{source_dir}' does not exist.")
+    if not os.path.exists(dest_dir):
+        raise FileNotFoundError(f"Destination directory '{dest_dir}' does not exist.")
+
+    # Clear dest_dir
+    for item in os.listdir(dest_dir):
+        item_path = os.path.join(dest_dir, item)
+        if os.path.isfile(item_path) or os.path.islink(item_path):
+            os.unlink(item_path)
+        elif os.path.isdir(item_path):
+            shutil.rmtree(item_path)
+
+    # Recursive copy with logging
+    def recursive_copy(src, dst):
+        for item in os.listdir(src):
+            s = os.path.join(src, item)
+            d = os.path.join(dst, item)
+            if os.path.isdir(s):
+                os.makedirs(d, exist_ok=True)
+                recursive_copy(s, d)
+            else:
+                shutil.copy2(s, d)
+                print(f"Copied file: {s} -> {d}")
+
+        recursive_copy(source_dir, dest_dir)
+
+def generate_page(from_path, template_path, dest_path):
+
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+
+    with open(from_path, "r", encoding="utf-8") as f:
+        md_content = f.read()
+    
+    with open(template_path, "r", encoding="utf-8") as f:    
+        template_content = f.read()
+
+    html_string = markdown_to_html_node(md_content).to_html()
+    title = extract_title(md_content)
+
+    newpage = template_content.replace("{{ Title }}", title)
+    newpage = newpage.replace("{{ Content }}", html_string)    
+
+    save_html(dest_path, newpage)
+
+def extract_title(markdown):
+    for line in markdown.split("\n"):
+        if line.startswith("# "):
+            return line[2:].strip()
+    raise Exception("No H1 header found in the markdown file")
+
+def save_html(dest_path, content):
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    with open(dest_path, "w", encoding="utf-8") as f:
+        f.write(content)

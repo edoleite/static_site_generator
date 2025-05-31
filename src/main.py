@@ -1,30 +1,20 @@
 from textnode import *
 from htmlnode import *
+from blocknode import *
 from functions import *
-from markdown_to_htmlnode import *
+
+
 
 def main():
-    md = """# Heading One
+   
+   source = "/home/edo/workspace/github.com/edoleite/static_site_generator/static"
+   dest = "/home/edo/workspace/github.com/edoleite/static_site_generator/public"
+   copy_contents(source, dest)
 
-This is a paragraph.
-
-## Heading Two
-
-> This is a quote.
-> Still in the quote.
-
-- Item one
-- Item two
-- Item three
-
-1. First
-2. Second
-3. Third
-
-"""
-    html_node = markdown_to_html_node(md)
-    print(html_node.to_html())
-
+   page_source = "/home/edo/workspace/github.com/edoleite/static_site_generator/content/index.md" 
+   template = "/home/edo/workspace/github.com/edoleite/static_site_generator/template.html"
+   page_dest = "/home/edo/workspace/github.com/edoleite/static_site_generator/public/index.html"
+   generate_page(page_source, template, page_dest)
 
 main()
 
