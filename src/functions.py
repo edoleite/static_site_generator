@@ -2,7 +2,8 @@ from textnode import *
 from htmlnode import *
 from blocknode import BlockType
 import re
-
+import os
+import shutil
 
 #this function turn a text node to a html node (leafnode more specifically)
 def text_node_to_html_node(text_node):       
@@ -359,7 +360,46 @@ def flatten_children(children):
 
 #md to html node sonu
 
+#copy static fuctions
 
+def clean_content(path):
+        if os.path.exists(path):
+            contents = os.listdir(path)
+            for item in contents:
+                item_path = os.path.join(path, item)
+                if os.path.isfile(item_path):
+                    os.remove(item_path)
+                elif not os.listdir(item_path):
+                    os.rmdir(item_path)
+                else:
+                    clean_content(item_path)
+        else:
+            raise Exception("path does not exist")
+
+def copy_contents(source, destination):
+    #clean destination folder
+    if os.path.exists(destination):
+        clean_content(destination)
+    
+    if os.path.exists(source):
+        contents = os.listdir(source)
+        if contents:
+            for item in contents:
+                item_src = os.path.join(source, item)
+                item_dest = os.path.join(destination, item)
+
+                if os.path.isfile(item_src):
+                    print(f"copying file {item_src} to {item_dest}")
+                    os.makedirs(os.path.dirname(item_dest), exist_ok=True)
+                    shutil.copy(item_src, item_dest)
+                elif os.listdir(item_src):
+                    copy_contents(item_src, item_dest)
+                else:
+                    os.makedirs(item_dest)
+        else:
+            raise Exception("source directory is empty")
+    
+                
 
 
 
