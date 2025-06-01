@@ -21,7 +21,7 @@ def text_node_to_html_node(text_node):
         return LeafNode("code", text_node.text)
     
     if text_node.text_type == TextType.LINK:
-        return LeafNode("a", value=None, props={"href": text_node.url})
+        return LeafNode("a", value=text_node.text, props={"href": text_node.url})
     
     if text_node.text_type == TextType.IMAGE:
         return LeafNode("img", value="", props={"src": text_node.url, "alt": text_node.text})
@@ -399,7 +399,42 @@ def copy_contents(source, destination):
         else:
             raise Exception("source directory is empty")
     
-                
+#website genarator functions
+def extract_title(markdown):
+    if markdown.strip():
+        lines = markdown.split("\n")
+        for line in lines:
+            line = line.lstrip()
+            header = ""
 
+            if line.startswith("# "):
+                header = line.strip("# ").strip()
+                return header
+            
+        raise Exception("no header in markdown")        
+    else:
+        raise Exception("markdown is empty")                
 
+def generate_page(from_path, template_path, dest_path):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+    with open(from_path, "r") as f:
+        contents = f.read()
 
+    with open(template_path, "r") as f:
+        template = f.read()
+
+    html_node = markdown_to_html_node(contents)
+    html_string = html_node.to_html()
+    title = extract_title(contents)
+
+    template = template.replace("{{ Title }}", title)
+    template = template.replace("{{ Content }}", html_string)
+
+    dst_file = os.path.join(dest_path, "index.html")
+
+    # Make sure the destination directory exists
+    os.makedirs(dest_path, exist_ok=True)    
+
+    # Write to new HTML file
+    with open(dst_file, "w", encoding="utf-8") as f:
+        f.write(template)

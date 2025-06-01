@@ -531,7 +531,6 @@ class TestMarkdownConversion(unittest.TestCase):
         self.assertIn("<pre><code>", html)  # or <pre><code> if that's how it's generated
         self.assertIn("Code", html)
 
-
 class TestMarkdownToHtmlNode(unittest.TestCase):
 
     def test_heading(self):
@@ -593,20 +592,55 @@ class TestMarkdownToHtmlNode(unittest.TestCase):
             "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
         )
 
-def test_codeblock(self):
-    md = """
-```
-This is text that _should_ remain
-the **same** even with inline stuff
-```
-"""
+class TestExtractTitle(unittest.TestCase):
+    def test_valid(self):
+        md = "# valid header."
+        header = extract_title(md)
 
-    node = markdown_to_html_node(md)
-    html = node.to_html()
-    self.assertEqual(
-        html,
-        "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
-    )
+        self.assertEqual(
+            header, "valid header."
+        )
+
+    def test_with_whitespaces(self):
+        md = "    # valid header.        "
+        header = extract_title(md)
+
+        self.assertEqual(
+            header, "valid header."
+        )    
+
+    def test_noheader(self):
+        md = "    % not valid header.        "
+        with self.assertRaises(Exception) as context:
+            extract_title(md)
+        self.assertEqual(str(context.exception), "no header in markdown")
+
+
+    def test_empty(self):
+        md = "             "
+        with self.assertRaises(Exception) as context:
+            extract_title(md)
+        self.assertEqual(str(context.exception), "markdown is empty")
+
+    def test_second_header(self):
+        md = "## not valid    "
+        with self.assertRaises(Exception) as context:
+            extract_title(md)
+        self.assertEqual(str(context.exception), "no header in markdown")
+
+    def test_valid_with_unvalid(self):
+        md = "    ### not valid header.        \n   # valid header."
+        header = extract_title(md)
+
+        self.assertEqual(header, "valid header.")
+
+  
+    
+
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -28,8 +28,8 @@ class LeafNode(HTMLNode):
 
     
     def to_html(self):
-        if not self.value:
-            raise ValueError
+        print(f"DEBUG: tag={self.tag}, value={self.value}, props={self.props}")
+        
         if not self.tag:
             return self.value        
         
@@ -41,8 +41,7 @@ class LeafNode(HTMLNode):
             href = self.props['href']
             res = f'<{self.tag} href="{href}">{self.value}</{self.tag}>'
         elif self.tag == "img":        
-            res = f'<{self.tag} src="{self.props["src"]}" alt="{self.value}" />'
-
+            res = f'<{self.tag} src="{self.props["src"]}" alt="{self.props["alt"]}" />'
         else:
             res = f"<{self.tag}>{self.value}</{self.tag}>"
         return res
