@@ -10,11 +10,14 @@ def main():
    dest = "/home/edo/workspace/github.com/edoleite/static_site_generator/public"
    copy_contents(src, dest)
 
-   src = "/home/edo/workspace/github.com/edoleite/static_site_generator/content/index.md"
+   
+   
+   src = "/home/edo/workspace/github.com/edoleite/static_site_generator/content"
    dest = "/home/edo/workspace/github.com/edoleite/static_site_generator/public"
    temp = "/home/edo/workspace/github.com/edoleite/static_site_generator/template.html"
 
-   generate_page(src, temp, dest)
+   generate_pages_recursive(src, temp, dest)
+   
 
 
 main()

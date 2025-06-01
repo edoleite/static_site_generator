@@ -4,6 +4,7 @@ from blocknode import BlockType
 import re
 import os
 import shutil
+from pathlib import Path
 
 #this function turn a text node to a html node (leafnode more specifically)
 def text_node_to_html_node(text_node):       
@@ -415,8 +416,8 @@ def extract_title(markdown):
     else:
         raise Exception("markdown is empty")                
 
-def generate_page(from_path, template_path, dest_path):
-    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+
+def generate_page(from_path, template_path, dest_file_path):
     with open(from_path, "r") as f:
         contents = f.read()
 
@@ -427,14 +428,28 @@ def generate_page(from_path, template_path, dest_path):
     html_string = html_node.to_html()
     title = extract_title(contents)
 
-    template = template.replace("{{ Title }}", title)
-    template = template.replace("{{ Content }}", html_string)
+    filled_template = template.replace("{{ Title }}", title).replace("{{ Content }}", html_string)
 
-    dst_file = os.path.join(dest_path, "index.html")
+    with open(dest_file_path, "w", encoding="utf-8") as f:
+        f.write(filled_template)
 
-    # Make sure the destination directory exists
-    os.makedirs(dest_path, exist_ok=True)    
 
-    # Write to new HTML file
-    with open(dst_file, "w", encoding="utf-8") as f:
-        f.write(template)
+
+
+
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    src_path = Path(dir_path_content).resolve()
+    dest_root = Path(dest_dir_path).resolve()
+
+    for md_file in src_path.rglob("*.md"):
+        relative_path = md_file.relative_to(src_path)        # e.g. about.md or posts/post1.md
+        dest_file_path = dest_root / relative_path.with_suffix(".html")  # e.g. public/about.html
+
+        # Create parent directories if needed
+        os.makedirs(dest_file_path.parent, exist_ok=True)
+
+        # Actually generate the page
+        generate_page(str(md_file), template_path, str(dest_file_path))
+
+
+
