@@ -417,7 +417,7 @@ def extract_title(markdown):
         raise Exception("markdown is empty")                
 
 
-def generate_page(from_path, template_path, dest_file_path):
+def generate_page(from_path, template_path, dest_file_path, basepath):
     with open(from_path, "r") as f:
         contents = f.read()
 
@@ -428,7 +428,8 @@ def generate_page(from_path, template_path, dest_file_path):
     html_string = html_node.to_html()
     title = extract_title(contents)
 
-    filled_template = template.replace("{{ Title }}", title).replace("{{ Content }}", html_string)
+    filled_template = template.replace("{{ Title }}", title).replace("{{ Content }}", html_string).replace('href="/', f'href="{basepath}' ).replace('src="/', f'src="{basepath}')
+    
 
     with open(dest_file_path, "w", encoding="utf-8") as f:
         f.write(filled_template)
@@ -437,7 +438,7 @@ def generate_page(from_path, template_path, dest_file_path):
 
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     src_path = Path(dir_path_content).resolve()
     dest_root = Path(dest_dir_path).resolve()
 
@@ -449,7 +450,7 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
         os.makedirs(dest_file_path.parent, exist_ok=True)
 
         # Actually generate the page
-        generate_page(str(md_file), template_path, str(dest_file_path))
+        generate_page(str(md_file), template_path, str(dest_file_path), basepath)
 
 
 
